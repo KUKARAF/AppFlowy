@@ -78,6 +78,10 @@ pub fn init(user_manager: Weak<UserManager>) -> AFPlugin {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Display, Hash, ProtoBuf_Enum, Flowy_Event)]
 #[event_err = "FlowyError"]
 pub enum UserEvent {
+  // Reserved — proto3 requires the first enum value to be zero.
+  #[event()]
+  Reserved = 0,
+
   /// Logging out fo an account
   #[event()]
   SignOut = 2,
