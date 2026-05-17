@@ -1,14 +1,9 @@
-import 'package:appflowy/env/cloud_env.dart';
 import 'package:appflowy/generated/flowy_svgs.g.dart';
 import 'package:appflowy/generated/locale_keys.g.dart';
 import 'package:appflowy/startup/startup.dart';
 import 'package:appflowy/user/application/auth/auth_service.dart';
-import 'package:appflowy/user/application/password/password_bloc.dart';
 import 'package:appflowy/user/application/prelude.dart';
-import 'package:appflowy/user/presentation/screens/sign_in_screen/widgets/continue_with/continue_with_email_and_password.dart';
 import 'package:appflowy/util/navigator_context_extension.dart';
-import 'package:appflowy/workspace/presentation/settings/pages/account/password/change_password.dart';
-import 'package:appflowy/workspace/presentation/settings/pages/account/password/setup_password.dart';
 import 'package:appflowy/workspace/presentation/settings/widgets/setting_third_party_login.dart';
 import 'package:appflowy/workspace/presentation/widgets/dialogs.dart';
 import 'package:appflowy_backend/protobuf/flowy-user/user_profile.pb.dart';
@@ -94,102 +89,8 @@ class AccountSignInOutButton extends StatelessWidget {
       builder: (context) => BlocProvider<SignInBloc>(
         create: (context) => getIt<SignInBloc>(),
         child: const FlowyDialog(
-          constraints: BoxConstraints(maxHeight: 485, maxWidth: 375),
+          constraints: BoxConstraints(maxHeight: 300, maxWidth: 375),
           child: _SignInDialogContent(),
-        ),
-      ),
-    );
-  }
-}
-
-class ChangePasswordSection extends StatelessWidget {
-  const ChangePasswordSection({
-    super.key,
-    required this.userProfile,
-  });
-
-  final UserProfilePB userProfile;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppFlowyTheme.of(context);
-    return BlocBuilder<PasswordBloc, PasswordState>(
-      builder: (context, state) {
-        return Row(
-          children: [
-            Text(
-              LocaleKeys.newSettings_myAccount_password_title.tr(),
-              style: theme.textStyle.body.enhanced(
-                color: theme.textColorScheme.primary,
-              ),
-            ),
-            const Spacer(),
-            state.hasPassword
-                ? AFFilledTextButton.primary(
-                    text: LocaleKeys
-                        .newSettings_myAccount_password_changePassword
-                        .tr(),
-                    onTap: () => _showChangePasswordDialog(context),
-                  )
-                : AFFilledTextButton.primary(
-                    text: LocaleKeys
-                        .newSettings_myAccount_password_setupPassword
-                        .tr(),
-                    onTap: () => _showSetPasswordDialog(context),
-                  ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _showChangePasswordDialog(BuildContext context) async {
-    final theme = AppFlowyTheme.of(context);
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => MultiBlocProvider(
-        providers: [
-          BlocProvider<PasswordBloc>.value(
-            value: context.read<PasswordBloc>(),
-          ),
-          BlocProvider<SignInBloc>.value(
-            value: getIt<SignInBloc>(),
-          ),
-        ],
-        child: Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(theme.borderRadius.xl),
-          ),
-          child: ChangePasswordDialogContent(
-            userProfile: userProfile,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showSetPasswordDialog(BuildContext context) async {
-    final theme = AppFlowyTheme.of(context);
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => MultiBlocProvider(
-        providers: [
-          BlocProvider<PasswordBloc>.value(
-            value: context.read<PasswordBloc>(),
-          ),
-          BlocProvider<SignInBloc>.value(
-            value: getIt<SignInBloc>(),
-          ),
-        ],
-        child: Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(theme.borderRadius.xl),
-          ),
-          child: SetupPasswordDialogContent(
-            userProfile: userProfile,
-          ),
         ),
       ),
     );
@@ -211,17 +112,11 @@ class _SignInDialogContent extends StatelessWidget {
                 const _DialogHeader(),
                 const _DialogTitle(),
                 const VSpace(16),
-                const ContinueWithEmailAndPassword(),
-                if (isAuthEnabled) ...[
-                  const VSpace(20),
-                  const _OrDivider(),
-                  const VSpace(10),
-                  SettingThirdPartyLogin(
-                    didLogin: () {
-                      context.popToHome();
-                    },
-                  ),
-                ],
+                SettingThirdPartyLogin(
+                  didLogin: () {
+                    context.popToHome();
+                  },
+                ),
               ],
             ),
           ),
@@ -292,24 +187,6 @@ class _DialogTitle extends StatelessWidget {
             maxLines: null,
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Flexible(child: Divider(thickness: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: FlowyText.regular(LocaleKeys.signIn_or.tr()),
-        ),
-        const Flexible(child: Divider(thickness: 1)),
       ],
     );
   }

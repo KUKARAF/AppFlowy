@@ -1,0 +1,160 @@
+services:
+
+  # ─── AppFlowy desktop client ───────────────────────────────────────────────
+  # Runs the Flutter Linux app. Requires a display (set DISPLAY and share
+  # /tmp/.X11-unix, or replace with your VNC/Wayland setup).
+  appflowy_client:
+    image: ghcr.io/kukaraf/appflowy:latest
+    restart: unless-stopped
+    environment:
+      # ── Public config — commit these ──────────────────────────────────────
+      APPFLOWY_CLOUD_URL: https://cloud.osmosis.page
+      AUTHENTIK_BASE_URL: https://auth.osmosis.page
+      AUTHENTIK_APP_SLUG: appflowy
+      AUTHENTIK_CLIENT_ID: ""       # fill in: OAuth2 client ID from Authentik
+      # ── Display (X11 forwarding) ──────────────────────────────────────────
+      DISPLAY: "${DISPLAY:-:0}"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - appflowy_client_data:/home/appflowy/.local/share/appflowy_core
+    network_mode: host
+    logging: &loki
+      driver: loki
+      options:
+        loki-url: "http://${LOKI_HOST:-192.168.1.66}:3100/loki/api/v1/push"
+        loki-external-labels: "service=appflowy_client,env=production"
+        loki-batch-size: "400"
+        loki-retries: "3"
+
+  # ─── AppFlowy Cloud backend (Rust) ─────────────────────────────────────────
+  appflowy_cloud:
+    image: appflowyio/appflowy_cloud:${APPFLOWY_CLOUD_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      RUST_LOG: info
+      APPFLOWY_ENVIRONMENT: production
+
+      # Database
+      APPFLOWY_DATABASE_URL: postgres://${POSTGRES_USER:-appflowy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-appflowy}
+
+      # Redis
+      APPFLOWY_REDIS_URL: redis://redis:6379
+
+      # Object storage
+      APPFLOWY_S3_USE_MINIO: "true"
+      APPFLOWY_S3_MINIO_URL: http://minio:9000
+      APPFLOWY_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-appflowy}
+      APPFLOWY_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      APPFLOWY_S3_BUCKET: appflowy
+      APPFLOWY_S3_REGION: us-east-1
+
+      # Authentik JWT validation
+      # The server validates tokens against Authentik's JWKS endpoint.
+      # Set APPFLOWY_GOTRUE_BASE_URL to your Authentik OIDC issuer URL.
+      APPFLOWY_GOTRUE_BASE_URL: https://auth.osmosis.page/application/o/appflowy
+      APPFLOWY_GOTRUE_JWT_SECRET: ${APPFLOWY_JWT_SECRET}
+      APPFLOWY_GOTRUE_ADMIN_EMAIL: admin@osmosis.page
+      APPFLOWY_GOTRUE_ADMIN_PASSWORD: ${APPFLOWY_ADMIN_PASSWORD}
+
+      # Email (optional — workspace invitations)
+      APPFLOWY_MAILER_SMTP_HOST: ${SMTP_HOST:-}
+      APPFLOWY_MAILER_SMTP_PORT: ${SMTP_PORT:-587}
+      APPFLOWY_MAILER_SMTP_USERNAME: ${SMTP_USERNAME:-}
+      APPFLOWY_MAILER_SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    logging:
+      <<: *loki
+      options:
+        loki-url: "http://${LOKI_HOST:-192.168.1.66}:3100/loki/api/v1/push"
+        loki-external-labels: "service=appflowy_cloud,env=production"
+        loki-batch-size: "400"
+        loki-retries: "3"
+
+  # ─── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-appflowy}
+      POSTGRES_USER: ${POSTGRES_USER:-appflowy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-appflowy}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      <<: *loki
+      options:
+        loki-url: "http://${LOKI_HOST:-192.168.1.66}:3100/loki/api/v1/push"
+        loki-external-labels: "service=postgres,env=production"
+        loki-batch-size: "400"
+
+  # ─── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      <<: *loki
+      options:
+        loki-url: "http://${LOKI_HOST:-192.168.1.66}:3100/loki/api/v1/push"
+        loki-external-labels: "service=redis,env=production"
+        loki-batch-size: "400"
+
+  # ─── MinIO (S3-compatible object storage) ─────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-appflowy}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    logging:
+      <<: *loki
+      options:
+        loki-url: "http://${LOKI_HOST:-192.168.1.66}:3100/loki/api/v1/push"
+        loki-external-labels: "service=minio,env=production"
+        loki-batch-size: "400"
+
+  # ─── Nginx reverse proxy ───────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - appflowy_cloud
+    logging:
+      <<: *loki
+      options:
+        loki-url: "http://${LOKI_HOST:-192.168.1.66}:3100/loki/api/v1/push"
+        loki-external-labels: "service=nginx,env=production"
+        loki-batch-size: "400"
+
+volumes:
+  appflowy_client_data:
+  postgres_data:
+  redis_data:
+  minio_data:

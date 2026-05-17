@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:appflowy/core/config/kv.dart';
 import 'package:appflowy/core/config/kv_keys.dart';
 import 'package:appflowy/env/backend_env.dart';
@@ -202,6 +204,24 @@ class AppFlowyCloudSharedEnv {
   AuthenticatorType get authenticatorType => _authenticatorType;
 
   static Future<AppFlowyCloudSharedEnv> fromEnv() async {
+    // If APPFLOWY_CLOUD_URL is set in the process environment, use it directly.
+    // This is the runtime configuration path for Docker/container deployments
+    // where config is passed via environment variables, not baked into the binary.
+    final runtimeCloudUrl = Platform.environment['APPFLOWY_CLOUD_URL'];
+    if (runtimeCloudUrl != null && runtimeCloudUrl.isNotEmpty) {
+      final appflowyCloudConfig = AppFlowyCloudConfiguration(
+        base_url: runtimeCloudUrl,
+        ws_base_url: await _getAppFlowyCloudWSUrl(runtimeCloudUrl),
+        gotrue_url: await _getAppFlowyCloudGotrueUrl(runtimeCloudUrl),
+        enable_sync_trace: false,
+        base_web_domain: Env.baseWebDomain,
+      );
+      return AppFlowyCloudSharedEnv(
+        authenticatorType: AuthenticatorType.appflowyCloud,
+        appflowyCloudConfig: appflowyCloudConfig,
+      );
+    }
+
     // If [Env.enableCustomCloud] is true, then use the custom cloud configuration.
     if (Env.enableCustomCloud) {
       // Use the custom cloud configuration.

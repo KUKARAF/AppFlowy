@@ -4,25 +4,22 @@ import 'package:appflowy/mobile/presentation/bottom_sheet/bottom_sheet.dart';
 import 'package:appflowy/mobile/presentation/widgets/show_flowy_mobile_confirm_dialog.dart';
 import 'package:appflowy/startup/startup.dart';
 import 'package:appflowy/user/application/auth/auth_service.dart';
-import 'package:appflowy/user/application/sign_in_bloc.dart';
-import 'package:appflowy/user/presentation/screens/sign_in_screen/widgets/widgets.dart';
 import 'package:appflowy/workspace/presentation/settings/pages/account/account_deletion.dart';
-import 'package:appflowy_backend/log.dart';
 import 'package:appflowy_backend/protobuf/flowy-user/protobuf.dart';
 import 'package:appflowy_ui/appflowy_ui.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flowy_infra_ui/flowy_infra_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 class UserSessionSettingGroup extends StatelessWidget {
   const UserSessionSettingGroup({
     super.key,
     required this.userProfile,
-    required this.showThirdPartyLogin,
+    this.showThirdPartyLogin = false,
   });
 
   final UserProfilePB userProfile;
+  // Kept for backwards-compat but always ignored — Authentik is the only sign-in method.
   final bool showThirdPartyLogin;
 
   @override
@@ -30,8 +27,6 @@ class UserSessionSettingGroup extends StatelessWidget {
     final theme = AppFlowyTheme.of(context);
     return Column(
       children: [
-        // third party sign in buttons
-        if (showThirdPartyLogin) _buildThirdPartySignInButtons(context),
         VSpace(theme.spacing.xxl),
 
         // logout button
@@ -57,32 +52,6 @@ class UserSessionSettingGroup extends StatelessWidget {
 
         VSpace(theme.spacing.xxl),
       ],
-    );
-  }
-
-  Widget _buildThirdPartySignInButtons(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<SignInBloc>(),
-      child: BlocConsumer<SignInBloc, SignInState>(
-        listener: (context, state) {
-          state.successOrFail?.fold(
-            (result) => runAppFlowy(),
-            (e) => Log.error(e),
-          );
-        },
-        builder: (context, state) {
-          return Column(
-            children: [
-              const ContinueWithEmailAndPassword(),
-              const VSpace(12.0),
-              const ThirdPartySignInButtons(
-                expanded: true,
-              ),
-              const VSpace(16.0),
-            ],
-          );
-        },
-      ),
     );
   }
 

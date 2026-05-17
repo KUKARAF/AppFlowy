@@ -1,12 +1,10 @@
 import 'package:appflowy/core/frameless_window.dart';
-import 'package:appflowy/env/cloud_env.dart';
 import 'package:appflowy/generated/flowy_svgs.g.dart';
 import 'package:appflowy/generated/locale_keys.g.dart';
 import 'package:appflowy/shared/settings/show_settings.dart';
 import 'package:appflowy/shared/window_title_bar.dart';
 import 'package:appflowy/user/application/sign_in_bloc.dart';
-import 'package:appflowy/user/presentation/screens/sign_in_screen/widgets/anonymous_sign_in_button.dart';
-import 'package:appflowy/user/presentation/screens/sign_in_screen/widgets/widgets.dart';
+import 'package:appflowy/user/presentation/screens/sign_in_screen/widgets/sign_in_agreement.dart';
 import 'package:appflowy/user/presentation/widgets/widgets.dart';
 import 'package:appflowy_ui/appflowy_ui.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -17,9 +15,7 @@ import 'package:universal_platform/universal_platform.dart';
 import 'package:window_manager/window_manager.dart';
 
 class DesktopSignInScreen extends StatefulWidget {
-  const DesktopSignInScreen({
-    super.key,
-  });
+  const DesktopSignInScreen({super.key});
 
   @override
   State<DesktopSignInScreen> createState() => _DesktopSignInScreenState();
@@ -30,7 +26,6 @@ class _DesktopSignInScreenState extends State<DesktopSignInScreen>
   @override
   Widget build(BuildContext context) {
     final theme = AppFlowyTheme.of(context);
-
     return BlocBuilder<SignInBloc, SignInState>(
       builder: (context, state) {
         final bottomPadding = UniversalPlatform.isDesktop ? 20.0 : 24.0;
@@ -40,41 +35,33 @@ class _DesktopSignInScreenState extends State<DesktopSignInScreen>
             child: AuthFormContainer(
               children: [
                 const Spacer(),
-
-                // logo and title
                 FlowyLogoTitle(
                   title: LocaleKeys.welcomeText.tr(),
                   logoSize: Size.square(36),
                 ),
                 VSpace(theme.spacing.xxl),
-
-                // continue with email and password
-                isLocalAuthEnabled
-                    ? const SignInAnonymousButtonV3()
-                    : const ContinueWithEmailAndPassword(),
-
+                AFFilledTextButton.primary(
+                  size: AFButtonSize.l,
+                  alignment: Alignment.center,
+                  text: 'Sign in with Authentik',
+                  onTap: state.isSubmitting
+                      ? null
+                      : () => context.read<SignInBloc>().add(
+                            const SignInEvent.signInWithOAuth(
+                              platform: 'authentik',
+                            ),
+                          ),
+                  textStyle: theme.textStyle.body.enhanced(
+                    color: theme.textColorScheme.onFill,
+                  ),
+                ),
                 VSpace(theme.spacing.xxl),
-
-                // third-party sign in.
-                if (isAuthEnabled) ...[
-                  const _OrDivider(),
-                  VSpace(theme.spacing.xxl),
-                  const ThirdPartySignInButtons(),
-                  VSpace(theme.spacing.xxl),
-                ],
-
-                // sign in agreement
                 const SignInAgreement(),
-
                 const Spacer(),
-
-                // anonymous sign in and settings
-                const Row(
+                Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    DesktopSignInSettingsButton(),
-                    HSpace(20),
-                    SignInAnonymousButtonV2(),
+                    const DesktopSignInSettingsButton(),
                   ],
                 ),
                 VSpace(bottomPadding),
@@ -97,16 +84,12 @@ class _DesktopSignInScreenState extends State<DesktopSignInScreen>
 
   @override
   void onWindowFocus() {
-    // https://pub.dev/packages/window_manager#windows
-    // must call setState once when the window is focused
     setState(() {});
   }
 }
 
 class DesktopSignInSettingsButton extends StatelessWidget {
-  const DesktopSignInSettingsButton({
-    super.key,
-  });
+  const DesktopSignInSettingsButton({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -129,34 +112,6 @@ class DesktopSignInSettingsButton extends StatelessWidget {
           color: theme.textColorScheme.secondary,
         );
       },
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppFlowyTheme.of(context);
-    return Row(
-      children: [
-        Flexible(
-          child: AFDivider(),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            LocaleKeys.signIn_or.tr(),
-            style: theme.textStyle.body.standard(
-              color: theme.textColorScheme.secondary,
-            ),
-          ),
-        ),
-        Flexible(
-          child: AFDivider(),
-        ),
-      ],
     );
   }
 }

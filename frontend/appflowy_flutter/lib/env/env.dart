@@ -51,4 +51,5 @@ abstract class Env {
     defaultValue: ShareConstants.defaultBaseWebDomain,
   )
   static const String baseWebDomain = _Env.baseWebDomain;
+
 }

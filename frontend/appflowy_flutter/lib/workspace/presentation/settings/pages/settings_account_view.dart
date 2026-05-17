@@ -77,9 +77,6 @@ class _SettingsAccountViewState extends State<SettingsAccountView> {
                     SettingsEmailSection(
                       userProfile: state.userProfile,
                     ),
-                    ChangePasswordSection(
-                      userProfile: state.userProfile,
-                    ),
                     AccountSignInOutSection(
                       userProfile: state.userProfile,
                       onAction:

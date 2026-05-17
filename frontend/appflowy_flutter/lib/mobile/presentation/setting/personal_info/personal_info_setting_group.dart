@@ -3,10 +3,7 @@ import 'package:appflowy/mobile/presentation/bottom_sheet/bottom_sheet.dart';
 import 'package:appflowy/mobile/presentation/setting/widgets/mobile_setting_trailing.dart';
 import 'package:appflowy/startup/startup.dart';
 import 'package:appflowy/user/application/auth/auth_service.dart';
-import 'package:appflowy/user/application/password/password_bloc.dart';
 import 'package:appflowy/workspace/application/user/prelude.dart';
-import 'package:appflowy/workspace/presentation/settings/pages/account/password/change_password.dart';
-import 'package:appflowy/workspace/presentation/settings/pages/account/password/setup_password.dart';
 import 'package:appflowy_backend/protobuf/flowy-user/protobuf.dart';
 import 'package:appflowy_ui/appflowy_ui.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -27,19 +24,10 @@ class PersonalInfoSettingGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<SettingsUserViewBloc>(
-          create: (context) => getIt<SettingsUserViewBloc>(
-            param1: userProfile,
-          )..add(const SettingsUserEvent.initial()),
-        ),
-        BlocProvider(
-          create: (context) => PasswordBloc(userProfile)
-            ..add(PasswordEvent.init())
-            ..add(PasswordEvent.checkHasPassword()),
-        ),
-      ],
+    return BlocProvider<SettingsUserViewBloc>(
+      create: (context) => getIt<SettingsUserViewBloc>(
+        param1: userProfile,
+      )..add(const SettingsUserEvent.initial()),
       child: BlocSelector<SettingsUserViewBloc, SettingsUserState, String>(
         selector: (state) => state.userProfile.name,
         builder: (context, userName) {
@@ -72,14 +60,10 @@ class PersonalInfoSettingGroup extends StatelessWidget {
                   );
                 },
               ),
-              ...userProfile.userAuthType == AuthTypePB.Server
-                  ? [
-                      _buildEmailItem(context, userProfile),
-                      _buildPasswordItem(context, userProfile),
-                    ]
-                  : [
-                      _buildLoginItem(context, userProfile),
-                    ],
+              if (userProfile.userAuthType == AuthTypePB.Server)
+                _buildEmailItem(context, userProfile)
+              else
+                _buildLoginItem(context, userProfile),
             ],
           );
         },
@@ -100,59 +84,6 @@ class PersonalInfoSettingGroup extends StatelessWidget {
     );
   }
 
-  Widget _buildPasswordItem(BuildContext context, UserProfilePB userProfile) {
-    return BlocBuilder<PasswordBloc, PasswordState>(
-      builder: (context, state) {
-        final hasPassword = state.hasPassword;
-        final title = hasPassword
-            ? LocaleKeys.newSettings_myAccount_password_changePassword.tr()
-            : LocaleKeys.newSettings_myAccount_password_setupPassword.tr();
-        final passwordBloc = context.read<PasswordBloc>();
-        return MobileSettingItem(
-          name: LocaleKeys.newSettings_myAccount_password_title.tr(),
-          trailing: MobileSettingTrailing(
-            text: '',
-          ),
-          onTap: () {
-            showMobileBottomSheet(
-              context,
-              showHeader: true,
-              title: title,
-              showCloseButton: true,
-              showDragHandle: true,
-              showDivider: false,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              builder: (_) {
-                Widget child;
-                if (hasPassword) {
-                  child = ChangePasswordDialogContent(
-                    userProfile: userProfile,
-                    showTitle: false,
-                    showCloseAndSaveButton: false,
-                    showSaveButton: true,
-                    padding: EdgeInsets.zero,
-                  );
-                } else {
-                  child = SetupPasswordDialogContent(
-                    userProfile: userProfile,
-                    showTitle: false,
-                    showCloseAndSaveButton: false,
-                    showSaveButton: true,
-                    padding: EdgeInsets.zero,
-                  );
-                }
-                return BlocProvider.value(
-                  value: passwordBloc,
-                  child: child,
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
   Widget _buildLoginItem(BuildContext context, UserProfilePB userProfile) {
     final theme = AppFlowyTheme.of(context);
     return Column(
@@ -170,7 +101,6 @@ class PersonalInfoSettingGroup extends StatelessWidget {
           size: AFButtonSize.l,
           alignment: Alignment.center,
           onTap: () async {
-            // logout and restart the app
             await getIt<AuthService>().signOut();
             await runAppFlowy();
           },

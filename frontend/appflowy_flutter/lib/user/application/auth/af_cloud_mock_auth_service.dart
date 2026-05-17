@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:appflowy/user/application/auth/auth_service.dart';
-import 'package:appflowy/user/application/auth/backend_auth_service.dart';
 import 'package:appflowy/user/application/auth/device_id.dart';
 import 'package:appflowy/user/application/user_service.dart';
 import 'package:appflowy_backend/dispatch/dispatch.dart';
@@ -18,9 +17,6 @@ class AppFlowyCloudMockAuthService implements AuthService {
       : userEmail = email ?? "${uuid()}@appflowy.io";
 
   final String userEmail;
-
-  final BackendAuthService _appFlowyAuthService =
-      BackendAuthService(AuthTypePB.Server);
 
   @override
   Future<FlowyResult<UserProfilePB, FlowyError>> signUp({
@@ -49,7 +45,6 @@ class AppFlowyCloudMockAuthService implements AuthService {
   }) async {
     final payload = SignInUrlPayloadPB.create()
       ..authenticator = AuthTypePB.Server
-      // don't use nanoid here, the gotrue server will transform the email
       ..email = userEmail;
 
     final deviceId = await getDeviceId();
@@ -85,14 +80,14 @@ class AppFlowyCloudMockAuthService implements AuthService {
 
   @override
   Future<void> signOut() async {
-    await _appFlowyAuthService.signOut();
+    await UserBackendService.signOut();
   }
 
   @override
   Future<FlowyResult<UserProfilePB, FlowyError>> signUpAsGuest({
     Map<String, String> params = const {},
   }) async {
-    return _appFlowyAuthService.signUpAsGuest();
+    throw UnimplementedError();
   }
 
   @override

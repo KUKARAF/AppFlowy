@@ -11,7 +11,7 @@ import 'package:appflowy/shared/custom_image_cache_manager.dart';
 import 'package:appflowy/shared/easy_localiation_service.dart';
 import 'package:appflowy/startup/startup.dart';
 import 'package:appflowy/startup/tasks/appflowy_cloud_task.dart';
-import 'package:appflowy/user/application/auth/af_cloud_auth_service.dart';
+import 'package:appflowy/user/application/auth/authentik_auth_service.dart';
 import 'package:appflowy/user/application/auth/auth_service.dart';
 import 'package:appflowy/user/application/prelude.dart';
 import 'package:appflowy/user/application/reminder/reminder_bloc.dart';
@@ -34,7 +34,6 @@ import 'package:appflowy/workspace/application/workspace/prelude.dart';
 import 'package:appflowy/workspace/presentation/home/menu/menu_shared_state.dart';
 import 'package:appflowy_backend/log.dart';
 import 'package:appflowy_backend/protobuf/flowy-folder/view.pb.dart';
-import 'package:appflowy_backend/protobuf/flowy-user/protobuf.dart';
 import 'package:appflowy_popover/appflowy_popover.dart';
 import 'package:flowy_infra/file_picker/file_picker_impl.dart';
 import 'package:flowy_infra/file_picker/file_picker_service.dart';
@@ -104,28 +103,12 @@ void _resolveCommonService(
 }
 
 void _resolveUserDeps(GetIt getIt, IntegrationMode mode) {
-  switch (currentCloudType()) {
-    case AuthenticatorType.local:
-      getIt.registerFactory<AuthService>(
-        () => BackendAuthService(
-          AuthTypePB.Local,
-        ),
-      );
-      break;
-    case AuthenticatorType.appflowyCloud:
-    case AuthenticatorType.appflowyCloudSelfHost:
-    case AuthenticatorType.appflowyCloudDevelop:
-      getIt.registerFactory<AuthService>(() => AppFlowyCloudAuthService());
-      break;
-  }
+  getIt.registerFactory<AuthService>(() => AuthentikAuthService());
 
   getIt.registerFactory<AuthRouter>(() => AuthRouter());
 
   getIt.registerFactory<SignInBloc>(
     () => SignInBloc(getIt<AuthService>()),
-  );
-  getIt.registerFactory<SignUpBloc>(
-    () => SignUpBloc(getIt<AuthService>()),
   );
 
   getIt.registerFactory<SplashRouter>(() => SplashRouter());

@@ -23,9 +23,6 @@ pub fn init(user_manager: Weak<UserManager>) -> AFPlugin {
     .name("Flowy-User")
     .state(user_manager)
     .state(store_preferences)
-    .event(UserEvent::SignInWithEmailPassword, sign_in_with_email_password_handler)
-    .event(UserEvent::MagicLinkSignIn, sign_in_with_magic_link_handler)
-    .event(UserEvent::SignUp, sign_up)
     .event(UserEvent::InitUser, init_user_handler)
     .event(UserEvent::GetUserProfile, get_user_profile_handler)
     .event(UserEvent::SignOut, sign_out_handler)
@@ -37,13 +34,9 @@ pub fn init(user_manager: Weak<UserManager>) -> AFPlugin {
     .event(UserEvent::SetCloudConfig, set_cloud_config_handler)
     .event(UserEvent::GetCloudConfig, get_cloud_config_handler)
     .event(UserEvent::OauthSignIn, oauth_sign_in_handler)
-    .event(UserEvent::GenerateSignInURL, gen_sign_in_url_handler)
-    .event(UserEvent::GetOauthURLWithProvider, sign_in_with_provider_handler)
     .event(UserEvent::OpenWorkspace, open_workspace_handler)
     .event(UserEvent::GetUserWorkspace, get_user_workspace_handler)
     .event(UserEvent::UpdateNetworkState, update_network_state_handler)
-    .event(UserEvent::OpenAnonUser, open_anon_user_handler)
-    .event(UserEvent::GetAnonUser, get_anon_user_handler)
     .event(UserEvent::PushRealtimeEvent, push_realtime_event_handler)
     .event(UserEvent::CreateReminder, create_reminder_event_handler)
     .event(UserEvent::GetAllReminders, get_all_reminder_event_handler)
@@ -80,22 +73,11 @@ pub fn init(user_manager: Weak<UserManager>) -> AFPlugin {
     .event(UserEvent::UpdateWorkspaceSetting, update_workspace_setting_handler)
     .event(UserEvent::GetWorkspaceSetting, get_workspace_setting_handler)
     .event(UserEvent::NotifyDidSwitchPlan, notify_did_switch_plan_handler)
-    .event(UserEvent::PasscodeSignIn, sign_in_with_passcode_handler)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Display, Hash, ProtoBuf_Enum, Flowy_Event)]
 #[event_err = "FlowyError"]
 pub enum UserEvent {
-  /// Only use when the [AuthType] is Local or SelfHosted
-  /// Logging into an account using a register email and password
-  #[event(input = "SignInPayloadPB", output = "GotrueTokenResponsePB")]
-  SignInWithEmailPassword = 0,
-
-  /// Only use when the [AuthType] is Local or SelfHosted
-  /// Creating a new account
-  #[event(input = "SignUpPayloadPB", output = "UserProfilePB")]
-  SignUp = 1,
-
   /// Logging out fo an account
   #[event()]
   SignOut = 2,
@@ -128,14 +110,6 @@ pub enum UserEvent {
   #[event(input = "OauthSignInPB", output = "UserProfilePB")]
   OauthSignIn = 10,
 
-  /// Get the OAuth callback url
-  /// Only use when the [AuthType] is AFCloud
-  #[event(input = "SignInUrlPayloadPB", output = "SignInUrlPB")]
-  GenerateSignInURL = 11,
-
-  #[event(input = "OauthProviderPB", output = "OauthProviderDataPB")]
-  GetOauthURLWithProvider = 12,
-
   #[event(input = "UpdateCloudConfigPB")]
   SetCloudConfig = 13,
 
@@ -154,12 +128,6 @@ pub enum UserEvent {
 
   #[event(input = "NetworkStatePB")]
   UpdateNetworkState = 24,
-
-  #[event(output = "UserProfilePB")]
-  GetAnonUser = 25,
-
-  #[event()]
-  OpenAnonUser = 26,
 
   /// Push a realtime event to the user. Currently, the realtime event
   /// is only used when the auth type is: [AuthType::Supabase].
@@ -233,9 +201,6 @@ pub enum UserEvent {
   #[event(input = "AcceptWorkspaceInvitationPB")]
   AcceptWorkspaceInvitation = 49,
 
-  #[event(input = "MagicLinkSignInPB", output = "UserProfilePB")]
-  MagicLinkSignIn = 50,
-
   #[event(input = "SubscribeWorkspacePB", output = "PaymentLinkPB")]
   SubscribeWorkspace = 51,
 
@@ -271,9 +236,6 @@ pub enum UserEvent {
 
   #[event()]
   DeleteAccount = 64,
-
-  #[event(input = "PasscodeSignInPB", output = "GotrueTokenResponsePB")]
-  PasscodeSignIn = 65,
 }
 
 #[async_trait]

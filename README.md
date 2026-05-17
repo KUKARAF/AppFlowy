@@ -51,6 +51,96 @@ AppFlowy is the AI workspace where you achieve more without losing control of yo
 - [Self-hosting AppFlowy](https://appflowy.com/docs/Step-by-step-Self-Hosting-Guide---From-Zero-to-Production)
 - [Source](https://docs.appflowy.io/docs/documentation/appflowy/from-source)
 
+## Self-hosted Deployment (Authentik SSO)
+
+This fork replaces GoTrue with [Authentik](https://goauthentik.io/) as the sole identity provider. All other login methods (email/password, Google, GitHub, Apple, Discord, magic link, anonymous) are disabled.
+
+The Docker image is built automatically by GitHub Actions and pushed to GHCR (`ghcr.io/<owner>/appflowy`). The server stack is deployed via `deploy/docker-compose.yml`.
+
+---
+
+### 1. Authentik setup
+
+Create an OAuth2/OIDC provider in your Authentik admin panel:
+
+| Setting | Value |
+|---------|-------|
+| Client type | **Public** (no secret — PKCE is used) |
+| Redirect URI | `appflowy-flutter://login-callback` |
+| Scopes | `openid profile email offline_access` |
+| Grant types | `authorization_code` |
+
+Note the **application slug** and **client ID** — you'll need them below.
+
+---
+
+### 2. Build configuration (GitHub Actions → GHCR)
+
+The CI workflow (`.github/workflows/docker_ci.yml`) builds a **generic image** with no config baked in and pushes it to `ghcr.io/<owner>/appflowy:latest` on every push to `main`. No repository secrets or variables are required for the build itself.
+
+All configuration is supplied at **container runtime** via environment variables (see docker-compose below).
+
+---
+
+### 3. Local development build
+
+```bash
+cd frontend/appflowy_flutter
+cp .env.example .env
+# Fill in APPFLOWY_CLOUD_URL if connecting to your own server
+dart run build_runner build --delete-conflicting-outputs
+```
+
+For local dev, Authentik config is set as process environment variables before running the app:
+
+```bash
+export AUTHENTIK_BASE_URL=https://auth.osmosis.page
+export AUTHENTIK_APP_SLUG=appflowy
+export AUTHENTIK_CLIENT_ID=<your-client-id>
+flutter run -d linux
+```
+
+---
+
+### 4. Server deployment
+
+All container logs are shipped to Loki via the Docker logging driver. Install it once per host:
+```bash
+docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+```
+
+Then:
+```bash
+cd deploy
+cp .env.example .env
+# Fill in secrets (see .env.example)
+docker compose up -d
+```
+
+**`docker-compose.yml` — public config** (committed to git):
+
+All non-sensitive values live directly in `deploy/docker-compose.yml`:
+
+| Variable | Where | Example |
+|----------|-------|---------|
+| `APPFLOWY_CLOUD_URL` | `appflowy_client` service | `https://cloud.osmosis.page` |
+| `AUTHENTIK_BASE_URL` | `appflowy_client` service | `https://auth.osmosis.page` |
+| `AUTHENTIK_APP_SLUG` | `appflowy_client` service | `appflowy` |
+| `AUTHENTIK_CLIENT_ID` | `appflowy_client` service | `<from Authentik>` |
+| `APPFLOWY_GOTRUE_BASE_URL` | `appflowy_cloud` service | `https://auth.osmosis.page/application/o/appflowy` |
+
+**`.env` — secrets only** (gitignored, never commit):
+
+| Variable | Description |
+|----------|-------------|
+| `LOKI_HOST` | Loki host IP (default: `192.168.1.66`) |
+| `APPFLOWY_JWT_SECRET` | JWT signing secret — `openssl rand -hex 32` |
+| `APPFLOWY_ADMIN_PASSWORD` | AppFlowy Cloud admin password |
+| `POSTGRES_PASSWORD` | PostgreSQL password |
+| `MINIO_ROOT_PASSWORD` | MinIO root password |
+
+> **Server-side prerequisite:** The AppFlowy Cloud backend must validate tokens against Authentik's JWKS endpoint (`https://auth.osmosis.page/application/o/appflowy/jwks/`) rather than GoTrue. Without this server-side configuration, Authentik tokens will be rejected for workspace sync calls.
+
 ## Built With
 
 - [Flutter](https://flutter.dev/)

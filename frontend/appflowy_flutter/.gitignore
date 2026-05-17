@@ -71,6 +71,7 @@ windows/flutter/dart_ffi/
 
 .env
 .env.*
+!.env.example
 
 coverage/
 

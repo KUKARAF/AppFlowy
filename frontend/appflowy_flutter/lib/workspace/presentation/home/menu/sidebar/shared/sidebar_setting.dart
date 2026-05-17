@@ -3,7 +3,6 @@ import 'package:appflowy/generated/flowy_svgs.g.dart';
 import 'package:appflowy/generated/locale_keys.g.dart';
 import 'package:appflowy/plugins/document/application/document_appearance_cubit.dart';
 import 'package:appflowy/startup/startup.dart';
-import 'package:appflowy/user/application/password/password_bloc.dart';
 import 'package:appflowy/workspace/application/settings/settings_dialog_bloc.dart';
 import 'package:appflowy/workspace/presentation/home/af_focus_manager.dart';
 import 'package:appflowy/workspace/presentation/home/hotkeys.dart';
@@ -56,30 +55,17 @@ class UserSettingButton extends StatefulWidget {
 
 class _UserSettingButtonState extends State<UserSettingButton> {
   late UserWorkspaceBloc _userWorkspaceBloc;
-  late PasswordBloc _passwordBloc;
 
   @override
   void initState() {
     super.initState();
-
     _userWorkspaceBloc = context.read<UserWorkspaceBloc>();
-    _passwordBloc = PasswordBloc(_userWorkspaceBloc.state.userProfile)
-      ..add(PasswordEvent.init())
-      ..add(PasswordEvent.checkHasPassword());
   }
 
   @override
   void didChangeDependencies() {
     _userWorkspaceBloc = context.read<UserWorkspaceBloc>();
-
     super.didChangeDependencies();
-  }
-
-  @override
-  void dispose() {
-    _passwordBloc.close();
-
-    super.dispose();
   }
 
   @override
@@ -88,22 +74,18 @@ class _UserSettingButtonState extends State<UserSettingButton> {
       dimension: 28.0,
       child: FlowyTooltip(
         message: LocaleKeys.settings_menu_open.tr(),
-        child: BlocProvider.value(
-          value: _passwordBloc,
-          child: FlowyButton(
-            onTap: () => showSettingsDialog(
-              context,
-              userWorkspaceBloc: _userWorkspaceBloc,
-              passwordBloc: _passwordBloc,
-            ),
-            margin: EdgeInsets.zero,
-            text: FlowySvg(
-              FlowySvgs.settings_s,
-              color: widget.isHover
-                  ? Theme.of(context).colorScheme.onSurface
-                  : null,
-              opacity: 0.7,
-            ),
+        child: FlowyButton(
+          onTap: () => showSettingsDialog(
+            context,
+            userWorkspaceBloc: _userWorkspaceBloc,
+          ),
+          margin: EdgeInsets.zero,
+          text: FlowySvg(
+            FlowySvgs.settings_s,
+            color: widget.isHover
+                ? Theme.of(context).colorScheme.onSurface
+                : null,
+            opacity: 0.7,
           ),
         ),
       ),
@@ -114,7 +96,6 @@ class _UserSettingButtonState extends State<UserSettingButton> {
 void showSettingsDialog(
   BuildContext context, {
   required UserWorkspaceBloc userWorkspaceBloc,
-  PasswordBloc? passwordBloc,
   SettingsPage? initPage,
 }) {
   final userProfile = context.read<UserWorkspaceBloc>().state.userProfile;
@@ -124,15 +105,6 @@ void showSettingsDialog(
     builder: (dialogContext) => MultiBlocProvider(
       key: _settingsDialogKey,
       providers: [
-        passwordBloc != null
-            ? BlocProvider<PasswordBloc>.value(
-                value: passwordBloc,
-              )
-            : BlocProvider(
-                create: (context) => PasswordBloc(userProfile)
-                  ..add(PasswordEvent.init())
-                  ..add(PasswordEvent.checkHasPassword()),
-              ),
         BlocProvider<DocumentAppearanceCubit>.value(
           value: BlocProvider.of<DocumentAppearanceCubit>(dialogContext),
         ),
@@ -144,7 +116,6 @@ void showSettingsDialog(
         userProfile,
         initPage: initPage,
         didLogout: () async {
-          // Pop the dialog using the dialog context
           Navigator.of(dialogContext).pop();
           await runAppFlowy();
         },
@@ -155,7 +126,6 @@ void showSettingsDialog(
           Log.warn("Can't pop dialog context");
         },
         restartApp: () async {
-          // Pop the dialog using the dialog context
           Navigator.of(dialogContext).pop();
           await runAppFlowy();
         },

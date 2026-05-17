@@ -1,4 +1,5 @@
-use client_api::entity::GotrueTokenResponse;
+use base64::{engine::general_purpose, Engine as _};
+use std::collections::HashMap;
 use collab_integrate::collab_builder::AppFlowyCollabBuilder;
 use collab_integrate::CollabKVDB;
 use flowy_error::FlowyResult;
@@ -11,7 +12,7 @@ use flowy_sqlite::kv::KVStorePreferences;
 use flowy_sqlite::schema::user_table;
 use flowy_sqlite::ConnectionPool;
 use flowy_sqlite::{query_dsl::*, DBConnection, ExpressionMethods};
-use flowy_user_pub::cloud::{UserCloudServiceProvider, UserUpdate};
+use flowy_user_pub::cloud::{UserCloudService, UserCloudServiceProvider, UserUpdate};
 use flowy_user_pub::entities::*;
 use flowy_user_pub::workspace_service::UserWorkspaceService;
 use lib_infra::box_any::BoxAny;
@@ -356,83 +357,34 @@ impl UserManager {
     self.authenticate_user.database.get_collab_backup_list(uid)
   }
 
-  /// Performs a user sign-in, initializing user awareness and sending relevant notifications.
-  ///
-  /// This asynchronous function interacts with an external user service to authenticate and sign in a user
-  /// based on provided parameters. Once signed in, it updates the collaboration configuration, logs the user,
-  /// saves their workspaces, and initializes their user awareness.
-  ///
-  /// A sign-in notification is also sent after a successful sign-in.
-  ///
-  #[tracing::instrument(level = "info", skip(self, params))]
-  pub async fn sign_in(
-    &self,
-    params: SignInParams,
-    auth_type: AuthType,
-  ) -> Result<UserProfile, FlowyError> {
-    let cloud_service = self.cloud_service()?;
-    cloud_service.set_server_auth_type(&auth_type, None)?;
-
-    let response: AuthResponse = cloud_service
-      .get_user_service()?
-      .sign_in(BoxAny::new(params))
-      .await?;
-    let session = Session::from(&response);
-    self.prepare_user(&session).await;
-
-    let latest_workspace = response.latest_workspace.clone();
-    let workspace_id = Uuid::parse_str(&latest_workspace.id)?;
-    let user_profile = UserProfile::from((&response, &auth_type));
-    self.save_auth_data(&response, auth_type, &session).await?;
-
-    let _ = self
-      .initial_user_awareness(
-        session.user_id,
-        &session.user_uuid,
-        &workspace_id,
-        &user_profile.workspace_type,
-      )
-      .await;
-    self
-      .app_life_cycle
-      .read()
-      .await
-      .on_sign_in(
-        user_profile.uid,
-        &workspace_id,
-        &self.authenticate_user.user_config,
-        &self.authenticate_user.user_paths,
-        &user_profile.workspace_type,
-      )
-      .await?;
-    send_auth_state_notification(AuthStateChangedPB {
-      state: AuthStatePB::AuthStateSignIn,
-      message: "Sign in success".to_string(),
-    });
-    Ok(user_profile)
-  }
-
-  /// Manages the user sign-up process, potentially migrating data if necessary.
-  ///
-  /// This asynchronous function interacts with an external authentication service to register and sign up a user
-  /// based on the provided parameters. Following a successful sign-up, it handles configuration updates, logging,
-  /// and saving workspace information. If a user is signing up with a new profile and previously had guest data,
-  /// this function may migrate that data over to the new account.
-  ///
+  /// Signs in with an Authentik access token obtained via PKCE/OIDC.
+  /// The params map must contain `"authentik_access_token"`.
   #[tracing::instrument(level = "info", skip(self, params))]
   pub async fn sign_up(
     &self,
-    auth_type: AuthType,
+    _auth_type: AuthType,
     params: BoxAny,
   ) -> Result<UserProfile, FlowyError> {
-    let cloud_service = self.cloud_service()?;
-    cloud_service.set_server_auth_type(&auth_type, None)?;
+    let map = params
+      .unbox_or_error::<HashMap<String, String>>()
+      .map_err(|e| FlowyError::internal().with_context(format!("{e}")))?;
 
-    let auth_service = cloud_service.get_user_service()?;
-    let response: AuthResponse = auth_service.sign_up(params).await?;
-    let new_user_profile = UserProfile::from((&response, &auth_type));
+    let token = map
+      .get("authentik_access_token")
+      .ok_or_else(|| {
+        FlowyError::internal().with_context("Missing 'authentik_access_token' in sign-in params")
+      })?
+      .clone();
+
+    let cloud_service = self.cloud_service()?;
+    cloud_service.set_token(&token)?;
+    cloud_service.set_server_auth_type(&AuthType::AppFlowyCloud, None)?;
+
+    let user_service = cloud_service.get_user_service()?;
+    let response = authentik_auth_response(&token, &*user_service).await?;
+    let new_user_profile = UserProfile::from((&response, &AuthType::AppFlowyCloud));
     self
-      .continue_sign_up(&new_user_profile, response, &auth_type)
+      .continue_sign_up(&new_user_profile, response, &AuthType::AppFlowyCloud)
       .await?;
     Ok(new_user_profile)
   }
@@ -690,79 +642,6 @@ impl UserManager {
     }
   }
 
-  #[instrument(level = "info", skip_all)]
-  pub(crate) async fn generate_sign_in_url_with_email(
-    &self,
-    authenticator: &AuthType,
-    email: &str,
-  ) -> Result<String, FlowyError> {
-    let cloud_service = self.cloud_service()?;
-    cloud_service.set_server_auth_type(authenticator, None)?;
-
-    let auth_service = cloud_service.get_user_service()?;
-    let url = auth_service.generate_sign_in_url_with_email(email).await?;
-    Ok(url)
-  }
-
-  #[instrument(level = "info", skip_all)]
-  pub(crate) async fn sign_in_with_password(
-    &self,
-    email: &str,
-    password: &str,
-  ) -> Result<GotrueTokenResponse, FlowyError> {
-    self
-      .cloud_service()?
-      .set_server_auth_type(&AuthType::AppFlowyCloud, None)?;
-    let auth_service = self.cloud_service()?.get_user_service()?;
-    let response = auth_service.sign_in_with_password(email, password).await?;
-    Ok(response)
-  }
-
-  #[instrument(level = "info", skip_all)]
-  pub(crate) async fn sign_in_with_magic_link(
-    &self,
-    email: &str,
-    redirect_to: &str,
-  ) -> Result<(), FlowyError> {
-    self
-      .cloud_service()?
-      .set_server_auth_type(&AuthType::AppFlowyCloud, None)?;
-    let auth_service = self.cloud_service()?.get_user_service()?;
-    auth_service
-      .sign_in_with_magic_link(email, redirect_to)
-      .await?;
-    Ok(())
-  }
-
-  #[instrument(level = "info", skip_all)]
-  pub(crate) async fn sign_in_with_passcode(
-    &self,
-    email: &str,
-    passcode: &str,
-  ) -> Result<GotrueTokenResponse, FlowyError> {
-    self
-      .cloud_service()?
-      .set_server_auth_type(&AuthType::AppFlowyCloud, None)?;
-    let auth_service = self.cloud_service()?.get_user_service()?;
-    let response = auth_service.sign_in_with_passcode(email, passcode).await?;
-    Ok(response)
-  }
-
-  #[instrument(level = "info", skip_all)]
-  pub(crate) async fn generate_oauth_url(
-    &self,
-    oauth_provider: &str,
-  ) -> Result<String, FlowyError> {
-    self
-      .cloud_service()?
-      .set_server_auth_type(&AuthType::AppFlowyCloud, None)?;
-    let auth_service = self.cloud_service()?.get_user_service()?;
-    let url = auth_service
-      .generate_oauth_url_with_provider(oauth_provider)
-      .await?;
-    Ok(url)
-  }
-
   #[instrument(level = "info", skip_all, err)]
   async fn save_auth_data(
     &self,
@@ -921,4 +800,71 @@ pub async fn sign_out(
   }
 
   Ok(())
+}
+
+/// Decodes an Authentik JWT and fetches workspace info to build an [AuthResponse].
+/// Signature verification is skipped on the client side — the server validates the token.
+async fn authentik_auth_response(
+  token: &str,
+  user_service: &dyn UserCloudService,
+) -> FlowyResult<AuthResponse> {
+  let parts: Vec<&str> = token.split('.').collect();
+  if parts.len() != 3 {
+    return Err(FlowyError::internal().with_context("Invalid JWT: expected header.payload.signature"));
+  }
+
+  let payload_bytes = general_purpose::URL_SAFE_NO_PAD
+    .decode(parts[1])
+    .map_err(|e| FlowyError::internal().with_context(format!("JWT base64 decode: {e}")))?;
+
+  let claims: Value = serde_json::from_slice(&payload_bytes)
+    .map_err(|e| FlowyError::internal().with_context(format!("JWT JSON parse: {e}")))?;
+
+  let sub = claims["sub"]
+    .as_str()
+    .ok_or_else(|| FlowyError::internal().with_context("JWT missing 'sub' claim"))?;
+
+  let user_uuid = Uuid::parse_str(sub)
+    .map_err(|_| FlowyError::internal().with_context(format!("JWT 'sub' is not a UUID: {sub}")))?;
+
+  let email = claims["email"].as_str().map(String::from);
+  let name = claims["name"]
+    .as_str()
+    .or_else(|| claims["preferred_username"].as_str())
+    .or_else(|| email.as_deref())
+    .unwrap_or("User")
+    .to_string();
+
+  // Derive a stable i64 uid from the first 8 bytes of the UUID.
+  let bytes = user_uuid.as_bytes();
+  let uid = i64::from_be_bytes([
+    bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+  ]);
+
+  let workspaces = user_service.get_all_workspace(uid).await.unwrap_or_default();
+  let is_new_user = workspaces.is_empty();
+  let latest_workspace = workspaces.first().cloned().unwrap_or_else(|| UserWorkspace {
+    id: Uuid::new_v4().to_string(),
+    name: format!("{name}'s Workspace"),
+    created_at: chrono::Utc::now(),
+    workspace_database_id: Uuid::new_v4().to_string(),
+    icon: String::new(),
+    member_count: 1,
+    role: Some(Role::Owner),
+    workspace_type: WorkspaceType::Server,
+  });
+
+  Ok(AuthResponse {
+    user_id: uid,
+    user_uuid,
+    name,
+    email,
+    latest_workspace,
+    user_workspaces: workspaces,
+    is_new_user,
+    token: Some(token.to_string()),
+    encryption_type: EncryptionType::NoEncryption,
+    updated_at: chrono::Utc::now().timestamp(),
+    metadata: None,
+  })
 }
