@@ -149,7 +149,7 @@ impl ServerProvider {
           embedding_writer,
         ))
       },
-      AuthType::AppFlowyCloud => {
+      AuthType::AppFlowyCloud | AuthType::Authentik => {
         let cfg = self
           .config
           .cloud_config

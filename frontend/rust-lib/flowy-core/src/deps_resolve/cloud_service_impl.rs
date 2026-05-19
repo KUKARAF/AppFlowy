@@ -229,7 +229,7 @@ impl UserCloudServiceProvider for ServerProvider {
   fn service_url(&self) -> String {
     match self.get_auth_type() {
       AuthType::Local => "".to_string(),
-      AuthType::AppFlowyCloud => AFCloudConfiguration::from_env()
+      AuthType::AppFlowyCloud | AuthType::Authentik => AFCloudConfiguration::from_env()
         .map(|config| config.base_url)
         .unwrap_or_default(),
     }
@@ -604,7 +604,7 @@ impl CollabCloudPluginProvider for ServerProvider {
   fn provider_type(&self) -> CollabPluginProviderType {
     match self.get_auth_type() {
       AuthType::Local => CollabPluginProviderType::Local,
-      AuthType::AppFlowyCloud => CollabPluginProviderType::AppFlowyCloud,
+      AuthType::AppFlowyCloud | AuthType::Authentik => CollabPluginProviderType::AppFlowyCloud,
     }
   }
 
