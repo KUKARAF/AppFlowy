@@ -115,14 +115,7 @@ class _SettingsInputFieldState extends State<SettingsInputField> {
             widget.onChanged?.call(controller.text);
             setState(() {});
           },
-          suffixIconBuilder: (context, isObscured) => widget.obscureText
-              ? PasswordSuffixIcon(
-                  isObscured: isObscured,
-                  onTap: () {
-                    setState(() => obscureText = !obscureText);
-                  },
-                )
-              : null,
+          suffixIconBuilder: (context, isObscured) => null,
         ),
         if (!widget.hideActions &&
             ((widget.value == null && controller.text.isNotEmpty) ||

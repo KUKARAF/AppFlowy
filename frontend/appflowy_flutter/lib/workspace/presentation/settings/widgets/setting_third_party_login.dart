@@ -47,13 +47,15 @@ class SettingThirdPartyLogin extends StatelessWidget {
                 size: AFButtonSize.l,
                 alignment: Alignment.center,
                 text: 'Sign in with Authentik',
-                onTap: state.isSubmitting
-                    ? null
-                    : () => context.read<SignInBloc>().add(
-                          const SignInEvent.signInWithOAuth(
-                            platform: 'authentik',
-                          ),
-                        ),
+                onTap: () {
+                  if (!state.isSubmitting) {
+                    context.read<SignInBloc>().add(
+                      const SignInEvent.signInWithOAuth(
+                        platform: 'authentik',
+                      ),
+                    );
+                  }
+                },
                 textStyle: theme.textStyle.body.enhanced(
                   color: theme.textColorScheme.onFill,
                 ),

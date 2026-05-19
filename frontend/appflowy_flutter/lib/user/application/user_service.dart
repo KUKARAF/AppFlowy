@@ -104,13 +104,7 @@ class UserBackendService implements IUserBackendService {
     return UserEventInitUser().send();
   }
 
-  static Future<FlowyResult<UserProfilePB, FlowyError>> getAnonUser() async {
-    return UserEventGetAnonUser().send();
-  }
-
-  static Future<FlowyResult<void, FlowyError>> openAnonUser() async {
-    return UserEventOpenAnonUser().send();
-  }
+  // Anonymous user login removed; all auth now goes through Authentik SSO
 
   Future<FlowyResult<List<UserWorkspacePB>, FlowyError>> getWorkspaces() {
     return UserEventGetAllWorkspace().send().then((value) {

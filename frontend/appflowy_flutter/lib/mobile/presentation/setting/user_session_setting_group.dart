@@ -30,9 +30,11 @@ class UserSessionSettingGroup extends StatelessWidget {
         VSpace(theme.spacing.xxl),
 
         // logout button
-        MobileLogoutButton(
+        AFOutlinedTextButton(
+          alignment: Alignment.center,
           text: LocaleKeys.settings_menu_logout.tr(),
-          onPressed: () async => _showLogoutDialog(),
+          onTap: () => _showLogoutDialog(),
+          size: AFButtonSize.l,
         ),
 
         // delete account button
@@ -149,19 +151,20 @@ class _DeleteAccountBottomSheetState extends State<_DeleteAccountBottomSheet> {
           const VSpace(18.0),
           _buildCheckbox(),
           const VSpace(18.0),
-          MobileLogoutButton(
+          AFOutlinedTextButton.destructive(
+            alignment: Alignment.center,
             text: LocaleKeys.button_deleteAccount.tr(),
-            textColor: Theme.of(context).colorScheme.error,
-            onPressed: () => deleteMyAccount(
+            onTap: () => deleteMyAccount(
               context,
               controller.text.trim(),
               isChecked.value,
             ),
           ),
           const VSpace(12.0),
-          MobileLogoutButton(
+          AFOutlinedTextButton(
+            alignment: Alignment.center,
             text: LocaleKeys.button_cancel.tr(),
-            onPressed: () => Navigator.of(context).pop(),
+            onTap: () => Navigator.of(context).pop(),
           ),
           const VSpace(36.0),
         ],

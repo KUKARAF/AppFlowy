@@ -47,7 +47,11 @@ class AuthentikDeepLinkHandler extends DeepLinkHandler<UserProfilePB> {
       return FlowyResult.failure(tokenResult.getFailure()!);
     }
 
-    final accessToken = tokenResult.getSuccess()!;
+    late final String accessToken;
+    tokenResult.fold(
+      (token) { accessToken = token; },
+      (_) { },
+    );
     final deviceId = await getDeviceId();
 
     final payload = OauthSignInPB(
