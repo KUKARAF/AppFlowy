@@ -34,14 +34,11 @@ class FlowyRunnerContext {
   final Directory applicationDataDirectory;
 }
 
-Future<void> runAppFlowy({bool isAnon = false}) async {
-  Log.info('restart AppFlowy: isAnon: $isAnon');
-
+Future<void> runAppFlowy() async {
   if (kReleaseMode) {
     await FlowyRunner.run(
       AppFlowyApplication(),
       integrationMode(),
-      isAnon: isAnon,
     );
   } else {
     // When running the app in integration test mode, we need to
@@ -51,7 +48,6 @@ Future<void> runAppFlowy({bool isAnon = false}) async {
       FlowyRunner.currentMode,
       didInitGetItCallback: IntegrationTestHelper.didInitGetItCallback,
       rustEnvsBuilder: IntegrationTestHelper.rustEnvsBuilder,
-      isAnon: isAnon,
     );
   }
 }
@@ -72,10 +68,6 @@ class FlowyRunner {
     Future Function()? didInitGetItCallback,
     // Passing the envs to the backend
     Map<String, String> Function()? rustEnvsBuilder,
-    // Indicate whether the app is running in anonymous mode.
-    // Note: when the app is running in anonymous mode, the user no need to
-    // sign in, and the app will only save the data in the local storage.
-    bool isAnon = false,
   }) async {
     currentMode = mode;
 
@@ -97,7 +89,6 @@ class FlowyRunner {
     await getIt.reset();
 
     final config = LaunchConfiguration(
-      isAnon: isAnon,
       // Unit test can't use the package_info_plus plugin
       version: mode.isUnitTest
           ? '1.0.0'

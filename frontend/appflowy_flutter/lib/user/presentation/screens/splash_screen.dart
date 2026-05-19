@@ -15,25 +15,11 @@ import 'package:universal_platform/universal_platform.dart';
 
 class SplashScreen extends StatelessWidget {
   /// Root Page of the app.
-  const SplashScreen({super.key, required this.isAnon});
-
-  final bool isAnon;
+  const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    if (isAnon) {
-      return FutureBuilder<void>(
-        future: _registerIfNeeded(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const SizedBox.shrink();
-          }
-          return _buildChild(context);
-        },
-      );
-    } else {
-      return _buildChild(context);
-    }
+    return _buildChild(context);
   }
 
   BlocProvider<SplashBloc> _buildChild(BuildContext context) {
@@ -73,20 +59,8 @@ class SplashScreen extends StatelessWidget {
   }
 
   void _handleUnauthenticated(BuildContext context, Unauthenticated result) {
-    // replace Splash screen as root page
-    if (isAuthEnabled || UniversalPlatform.isMobile) {
-      context.go(SignInScreen.routeName);
-    } else {
-      // if the env is not configured, we will skip to the 'skip login screen'.
-      context.go(SkipLogInScreen.routeName);
-    }
-  }
-
-  Future<void> _registerIfNeeded() async {
-    final result = await UserEventGetUserProfile().send();
-    if (result.isFailure) {
-      await getIt<AuthService>().signUpAsGuest();
-    }
+    // Replace splash screen with sign-in screen (Authentik SSO only)
+    context.go(SignInScreen.routeName);
   }
 }
 

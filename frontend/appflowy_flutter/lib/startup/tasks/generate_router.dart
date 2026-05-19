@@ -54,7 +54,6 @@ GoRouter generateRouter(Widget child) {
       _rootRoute(child),
       // Routes in both desktop and mobile
       _signInScreenRoute(),
-      _skipLogInScreenRoute(),
       _workspaceErrorScreenRoute(),
       // Desktop only
       if (UniversalPlatform.isDesktop) _desktopHomeScreenRoute(),
@@ -534,19 +533,6 @@ GoRoute _workspaceErrorScreenRoute() {
           error: args[WorkspaceErrorScreen.argError],
           userFolder: args[WorkspaceErrorScreen.argUserFolder],
         ),
-        transitionsBuilder: _buildFadeTransition,
-        transitionDuration: _slowDuration,
-      );
-    },
-  );
-}
-
-GoRoute _skipLogInScreenRoute() {
-  return GoRoute(
-    path: SkipLogInScreen.routeName,
-    pageBuilder: (context, state) {
-      return CustomTransitionPage(
-        child: const SkipLogInScreen(),
         transitionsBuilder: _buildFadeTransition,
         transitionDuration: _slowDuration,
       );

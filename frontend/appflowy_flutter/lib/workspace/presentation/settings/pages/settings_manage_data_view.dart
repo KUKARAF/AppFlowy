@@ -52,7 +52,7 @@ class SettingsManageDataView extends StatelessWidget {
         listener: (context, state) {
           if (state.didResetToDefault) {
             Navigator.of(context).pop();
-            runAppFlowy(isAnon: true);
+            runAppFlowy();
           }
         },
         builder: (context, state) {

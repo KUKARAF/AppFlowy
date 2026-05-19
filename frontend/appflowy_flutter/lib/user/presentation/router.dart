@@ -41,8 +41,8 @@ class AuthRouter {
     final result = await FolderEventGetCurrentWorkspaceSetting().send();
     result.fold(
       (workspaceSetting) {
-        // Replace SignInScreen or SkipLogInScreen as root page.
-        // If user click back button, it will exit app rather than go back to SignInScreen or SkipLogInScreen
+        // Replace SignInScreen as root page.
+        // If user click back button, it will exit app rather than go back to SignInScreen
         if (UniversalPlatform.isMobile) {
           context.go(
             MobileHomeScreen.routeName,
