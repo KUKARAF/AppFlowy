@@ -43,39 +43,7 @@ class AppFlowyCloudMockAuthService implements AuthService {
     required String platform,
     Map<String, String> params = const {},
   }) async {
-    final payload = SignInUrlPayloadPB.create()
-      ..authenticator = AuthTypePB.Server
-      ..email = userEmail;
-
-    final deviceId = await getDeviceId();
-    final getSignInURLResult = await UserEventGenerateSignInURL(payload).send();
-
-    return getSignInURLResult.fold(
-      (urlPB) async {
-        final payload = OauthSignInPB(
-          authType: AuthTypePB.Server,
-          map: {
-            AuthServiceMapKeys.signInURL: urlPB.signInUrl,
-            AuthServiceMapKeys.deviceId: deviceId,
-          },
-        );
-        Log.info("UserEventOauthSignIn with payload: $payload");
-        return UserEventOauthSignIn(payload).send().then((value) {
-          value.fold(
-            (l) => null,
-            (err) {
-              debugPrint("mock auth service Error: $err");
-              Log.error(err);
-            },
-          );
-          return value;
-        });
-      },
-      (r) {
-        debugPrint("mock auth service error: $r");
-        return FlowyResult.failure(r);
-      },
-    );
+    throw UnimplementedError();
   }
 
   @override
@@ -91,7 +59,7 @@ class AppFlowyCloudMockAuthService implements AuthService {
   }
 
   @override
-  Future<FlowyResult<UserProfilePB, FlowyError>> signInWithMagicLink({
+  Future<FlowyResult<void, FlowyError>> signInWithMagicLink({
     required String email,
     Map<String, String> params = const {},
   }) async {
