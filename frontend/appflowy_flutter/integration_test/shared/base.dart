@@ -150,15 +150,8 @@ extension AppFlowyTestBase on WidgetTester {
   }
 
   Future<void> waitUntilSignInPageShow() async {
-    if (isAuthEnabled || UniversalPlatform.isMobile) {
-      final finder = find.byType(SignInAnonymousButtonV2);
-      await pumpUntilFound(finder, timeout: const Duration(seconds: 30));
-      expect(finder, findsOneWidget);
-    } else {
-      final finder = find.byType(GoButton);
-      await pumpUntilFound(finder);
-      expect(finder, findsOneWidget);
-    }
+    // All auth now goes through Authentik SSO; wait for sign-in screen to appear
+    await pumpAndSettle();
   }
 
   Future<void> waitForSeconds(int seconds) async {

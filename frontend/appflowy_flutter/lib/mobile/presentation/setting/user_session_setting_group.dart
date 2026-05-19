@@ -30,7 +30,7 @@ class UserSessionSettingGroup extends StatelessWidget {
         VSpace(theme.spacing.xxl),
 
         // logout button
-        AFOutlinedTextButton.medium(
+        AFOutlinedTextButton.normal(
           alignment: Alignment.center,
           text: LocaleKeys.settings_menu_logout.tr(),
           onTap: () => _showLogoutDialog(),
@@ -160,7 +160,7 @@ class _DeleteAccountBottomSheetState extends State<_DeleteAccountBottomSheet> {
             ),
           ),
           const VSpace(12.0),
-          AFOutlinedTextButton.medium(
+          AFOutlinedTextButton.normal(
             alignment: Alignment.center,
             text: LocaleKeys.button_cancel.tr(),
             onTap: () => Navigator.of(context).pop(),

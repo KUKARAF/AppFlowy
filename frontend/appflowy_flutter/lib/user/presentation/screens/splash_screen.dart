@@ -1,7 +1,5 @@
-import 'package:appflowy/env/cloud_env.dart';
 import 'package:appflowy/generated/flowy_svgs.g.dart';
 import 'package:appflowy/startup/startup.dart';
-import 'package:appflowy/user/application/auth/auth_service.dart';
 import 'package:appflowy/user/application/splash_bloc.dart';
 import 'package:appflowy/user/domain/auth_state.dart';
 import 'package:appflowy/user/presentation/helpers/helpers.dart';

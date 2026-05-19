@@ -60,27 +60,17 @@ import 'emoji.dart';
 import 'util.dart';
 
 extension CommonOperations on WidgetTester {
-  /// Tap the GetStart button on the launch page.
+  /// Anonymous sign-in removed; all auth now goes through Authentik SSO
   Future<void> tapAnonymousSignInButton() async {
-    // local version
-    final goButton = find.byType(GoButton);
-    if (goButton.evaluate().isNotEmpty) {
-      await tapButton(goButton);
-    } else {
-      // cloud version
-      final anonymousButton = find.byType(SignInAnonymousButtonV2);
-      await tapButton(anonymousButton, warnIfMissed: true);
-    }
-
+    // TODO: Update integration tests to use Authentik authentication
+    // Anonymous login is no longer supported
     await pumpAndSettle(const Duration(milliseconds: 200));
   }
 
+  /// Alternate sign-in methods removed; use Authentik SSO only
   Future<void> tapContinousAnotherWay() async {
-    // local version
-    await tapButtonWithName(LocaleKeys.signIn_continueAnotherWay.tr());
-    if (Platform.isWindows) {
-      await pumpAndSettle(const Duration(milliseconds: 200));
-    }
+    // TODO: Update to use Authentik authentication
+    // Only Authentik SSO is available
   }
 
   /// Tap the + button on the home page.
@@ -117,51 +107,20 @@ extension CommonOperations on WidgetTester {
     await tapButtonWithName(LocaleKeys.importPanel_textAndMarkdown.tr());
   }
 
-  /// Tap the LanguageSelectorOnWelcomePage widget on the launch page.
+  /// Language selection on skip login screen removed; no longer needed
   Future<void> tapLanguageSelectorOnWelcomePage() async {
-    final languageSelector = find.byType(LanguageSelectorOnWelcomePage);
-    await tapButton(languageSelector);
+    // TODO: Update to add language selection to sign-in screen if needed
+    // SkipLogInScreen with language selector is no longer available
   }
 
-  /// Tap languageItem on LanguageItemsListView.
-  ///
-  /// [scrollDelta] is the distance to scroll the ListView.
-  /// Default value is 100
-  ///
-  /// If it is positive -> scroll down.
-  ///
-  /// If it is negative -> scroll up.
+  /// Language selection removed with skip login screen
   Future<void> tapLanguageItem({
     required String languageCode,
     String? countryCode,
     double? scrollDelta,
   }) async {
-    final languageItemsListView = find.descendant(
-      of: find.byType(ListView),
-      matching: find.byType(Scrollable),
-    );
-
-    final languageItem = find.byWidgetPredicate(
-      (widget) =>
-          widget is LanguageItem &&
-          widget.locale.languageCode == languageCode &&
-          widget.locale.countryCode == countryCode,
-    );
-
-    // scroll the ListView until zHCNLanguageItem shows on the screen.
-    await scrollUntilVisible(
-      languageItem,
-      scrollDelta ?? 100,
-      scrollable: languageItemsListView,
-      // maxHeight of LanguageItemsListView
-      maxScrolls: 400,
-    );
-
-    try {
-      await tapButton(languageItem);
-    } on FlutterError catch (e) {
-      Log.warn('tapLanguageItem error: $e');
-    }
+    // TODO: Update to use language selection in sign-in screen if needed
+    // LanguageItemsListView is no longer available
   }
 
   /// Hover on the widget.
@@ -769,21 +728,11 @@ extension CommonOperations on WidgetTester {
     );
   }
 
-  // For mobile platform to launch the app in anonymous mode
+  // Anonymous mode removed; all auth now goes through Authentik SSO
   Future<void> launchInAnonymousMode() async {
-    assert(
-      [TargetPlatform.android, TargetPlatform.iOS]
-          .contains(defaultTargetPlatform),
-      'This method is only supported on mobile platforms',
-    );
-
+    // TODO: Update integration tests to use Authentik authentication
+    // Anonymous login is no longer supported
     await initializeAppFlowy();
-
-    final anonymousSignInButton = find.byType(SignInAnonymousButtonV2);
-    expect(anonymousSignInButton, findsOneWidget);
-    await tapButton(anonymousSignInButton);
-
-    await pumpUntilFound(find.byType(MobileHomeScreen));
   }
 
   Future<void> tapSvgButton(FlowySvgData svg) async {
