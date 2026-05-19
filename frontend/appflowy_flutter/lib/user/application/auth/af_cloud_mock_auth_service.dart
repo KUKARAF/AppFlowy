@@ -1,15 +1,11 @@
 import 'dart:async';
 
 import 'package:appflowy/user/application/auth/auth_service.dart';
-import 'package:appflowy/user/application/auth/device_id.dart';
 import 'package:appflowy/user/application/user_service.dart';
-import 'package:appflowy_backend/dispatch/dispatch.dart';
-import 'package:appflowy_backend/log.dart';
 import 'package:appflowy_backend/protobuf/flowy-error/errors.pb.dart';
 import 'package:appflowy_backend/protobuf/flowy-user/protobuf.dart';
 import 'package:appflowy_result/appflowy_result.dart';
 import 'package:flowy_infra/uuid.dart';
-import 'package:flutter/material.dart';
 
 /// Only used for testing.
 class AppFlowyCloudMockAuthService implements AuthService {

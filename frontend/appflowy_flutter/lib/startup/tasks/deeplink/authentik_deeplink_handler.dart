@@ -44,7 +44,7 @@ class AuthentikDeepLinkHandler extends DeepLinkHandler<UserProfilePB> {
     final tokenResult = await _exchangeCodeForToken(code, codeVerifier);
     if (tokenResult.isFailure) {
       onStateChange(this, DeepLinkState.error);
-      return FlowyResult.failure(tokenResult.getFailure()!);
+      return FlowyResult.failure(tokenResult.getFailure());
     }
 
     late final String accessToken;
