@@ -300,6 +300,7 @@ impl From<&AuthType> for WorkspaceType {
     match value {
       AuthType::Local => WorkspaceType::Local,
       AuthType::AppFlowyCloud => WorkspaceType::Server,
+      AuthType::Authentik => WorkspaceType::Server,
     }
   }
 }
@@ -312,6 +313,8 @@ pub enum AuthType {
   /// Currently not supported. It will be supported in the future when the
   /// [AppFlowy-Server](https://github.com/AppFlowy-IO/AppFlowy-Server) ready.
   AppFlowyCloud = 1,
+  /// Authentik OIDC provider
+  Authentik = 2,
 }
 
 impl From<WorkspaceType> for AuthType {
@@ -328,6 +331,7 @@ impl Display for AuthType {
     match self {
       AuthType::Local => write!(f, "Local"),
       AuthType::AppFlowyCloud => write!(f, "AppFlowyCloud"),
+      AuthType::Authentik => write!(f, "Authentik"),
     }
   }
 }
@@ -353,6 +357,7 @@ impl From<i32> for AuthType {
     match value {
       0 => AuthType::Local,
       1 => AuthType::AppFlowyCloud,
+      2 => AuthType::Authentik,
       _ => AuthType::Local,
     }
   }

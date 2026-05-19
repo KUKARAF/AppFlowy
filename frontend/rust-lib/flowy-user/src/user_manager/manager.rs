@@ -378,13 +378,13 @@ impl UserManager {
 
     let cloud_service = self.cloud_service()?;
     cloud_service.set_token(&token)?;
-    cloud_service.set_server_auth_type(&AuthType::AppFlowyCloud, None)?;
+    cloud_service.set_server_auth_type(&AuthType::Authentik, None)?;
 
     let user_service = cloud_service.get_user_service()?;
     let response = authentik_auth_response(&token, &*user_service).await?;
-    let new_user_profile = UserProfile::from((&response, &AuthType::AppFlowyCloud));
+    let new_user_profile = UserProfile::from((&response, &AuthType::Authentik));
     self
-      .continue_sign_up(&new_user_profile, response, &AuthType::AppFlowyCloud)
+      .continue_sign_up(&new_user_profile, response, &AuthType::Authentik)
       .await?;
     Ok(new_user_profile)
   }
@@ -597,7 +597,7 @@ impl UserManager {
   pub fn token_from_auth_type(&self, auth_type: &AuthType) -> FlowyResult<Option<String>> {
     match auth_type {
       AuthType::Local => Ok(None),
-      AuthType::AppFlowyCloud => {
+      AuthType::AppFlowyCloud | AuthType::Authentik => {
         let uid = self.user_id()?;
         let mut conn = self.db_connection(uid)?;
         Ok(select_user_token(uid, &mut conn).ok())

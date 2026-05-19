@@ -306,6 +306,7 @@ impl From<AuthType> for AuthTypePB {
     match value {
       AuthType::Local => AuthTypePB::Local,
       AuthType::AppFlowyCloud => AuthTypePB::Server,
+      AuthType::Authentik => AuthTypePB::Server,
     }
   }
 }
@@ -314,7 +315,7 @@ impl From<AuthTypePB> for AuthType {
   fn from(value: AuthTypePB) -> Self {
     match value {
       AuthTypePB::Local => AuthType::Local,
-      AuthTypePB::Server => AuthType::AppFlowyCloud,
+      AuthTypePB::Server => AuthType::Authentik,
     }
   }
 }
