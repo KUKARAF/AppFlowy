@@ -15,6 +15,7 @@ import 'package:appflowy/user/application/auth/authentik_auth_service.dart';
 import 'package:appflowy/user/application/auth/auth_service.dart';
 import 'package:appflowy/user/application/prelude.dart';
 import 'package:appflowy/user/application/reminder/reminder_bloc.dart';
+import 'package:appflowy_backend/protobuf/flowy-user/protobuf.dart';
 import 'package:appflowy/user/application/user_listener.dart';
 import 'package:appflowy/user/presentation/router.dart';
 import 'package:appflowy/workspace/application/action_navigation/action_navigation_bloc.dart';

@@ -113,13 +113,13 @@ class AppFlowyCloudDeepLink {
     await _deepLinkHandlerRegistry.processDeepLink(
       uri: uri,
       onStateChange: (handler, state) {
-        // only handle the login deep link
-        if (handler is LoginDeepLinkHandler) {
+        // handle the Authentik login deep link
+        if (handler is AuthentikDeepLinkHandler) {
           _stateNotifier?.value = DeepLinkResult(state: state);
         }
       },
       onResult: (handler, result) async {
-        if (handler is LoginDeepLinkHandler &&
+        if (handler is AuthentikDeepLinkHandler &&
             result is FlowyResult<UserProfilePB, FlowyError>) {
           // If there is no completer, runAppFlowy() will be called.
           if (_completer == null) {

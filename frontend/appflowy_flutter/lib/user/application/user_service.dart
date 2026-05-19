@@ -68,33 +68,7 @@ class UserBackendService implements IUserBackendService {
     throw UnimplementedError();
   }
 
-  static Future<FlowyResult<UserProfilePB, FlowyError>> signInWithMagicLink(
-    String email,
-    String redirectTo,
-  ) async {
-    final payload = MagicLinkSignInPB(email: email, redirectTo: redirectTo);
-    return UserEventMagicLinkSignIn(payload).send();
-  }
-
-  static Future<FlowyResult<GotrueTokenResponsePB, FlowyError>>
-      signInWithPasscode(
-    String email,
-    String passcode,
-  ) async {
-    final payload = PasscodeSignInPB(email: email, passcode: passcode);
-    return UserEventPasscodeSignIn(payload).send();
-  }
-
-  Future<FlowyResult<void, FlowyError>> signInWithPassword(
-    String email,
-    String password,
-  ) {
-    final payload = SignInPayloadPB(
-      email: email,
-      password: password,
-    );
-    return UserEventSignInWithEmailPassword(payload).send();
-  }
+  // All non-Authentik auth methods removed (magic link, passcode, email/password)
 
   static Future<FlowyResult<void, FlowyError>> signOut() {
     return UserEventSignOut().send();

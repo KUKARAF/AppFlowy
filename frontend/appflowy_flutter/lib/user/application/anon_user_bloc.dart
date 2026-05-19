@@ -18,20 +18,22 @@ class AnonUserBloc extends Bloc<AnonUserEvent, AnonUserState> {
           emit(state.copyWith(anonUsers: anonUsers));
         },
         openAnonUser: (anonUser) async {
-          await UserBackendService.openAnonUser();
-          emit(state.copyWith(openedAnonUser: anonUser));
+          // Anonymous user support removed; now using Authentik SSO only
         },
       );
     });
   }
 
   Future<void> _loadHistoricalUsers() async {
+    // Anonymous user support removed; now using Authentik SSO only
+    return;
+    /*
     final result = await UserBackendService.getAnonUser();
     result.fold(
       (anonUser) {
         add(AnonUserEvent.didLoadAnonUsers([anonUser]));
       },
-      (error) {
+      (error) {*/
         if (error.code != ErrorCode.RecordNotFound) {
           Log.error(error);
         }
