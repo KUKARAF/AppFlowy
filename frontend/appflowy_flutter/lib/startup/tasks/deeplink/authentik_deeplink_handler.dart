@@ -73,8 +73,21 @@ class AuthentikDeepLinkHandler extends DeepLinkHandler<UserProfilePB> {
   ) async {
     final base = Platform.environment['AUTHENTIK_BASE_URL'] ??
         'https://auth.osmosis.page';
-    final slug = Platform.environment['AUTHENTIK_APP_SLUG'] ?? '';
-    final clientId = Platform.environment['AUTHENTIK_CLIENT_ID'] ?? '';
+    final slug = Platform.environment['AUTHENTIK_APP_SLUG'];
+    final clientId = Platform.environment['AUTHENTIK_CLIENT_ID'];
+
+    if (slug == null || slug.isEmpty) {
+      return FlowyResult.failure(
+        FlowyError()
+          ..msg = 'AUTHENTIK_APP_SLUG environment variable not set',
+      );
+    }
+    if (clientId == null || clientId.isEmpty) {
+      return FlowyResult.failure(
+        FlowyError()
+          ..msg = 'AUTHENTIK_CLIENT_ID environment variable not set',
+      );
+    }
 
     try {
       final response = await http.post(

@@ -23,23 +23,31 @@ String? getPendingCodeVerifier() => _pendingCodeVerifier;
 void clearPendingCodeVerifier() => _pendingCodeVerifier = null;
 
 class AuthentikAuthService implements AuthService {
+  late final String _base;
+  late final String _slug;
+  late final String _clientId;
+
+  AuthentikAuthService() {
+    _base = Platform.environment['AUTHENTIK_BASE_URL'] ??
+        'https://auth.osmosis.page';
+    _slug = Platform.environment['AUTHENTIK_APP_SLUG'] ??
+        _throwMissing('AUTHENTIK_APP_SLUG');
+    _clientId = Platform.environment['AUTHENTIK_CLIENT_ID'] ??
+        _throwMissing('AUTHENTIK_CLIENT_ID');
+  }
+
+  static Never _throwMissing(String varName) {
+    throw StateError(
+      'Required environment variable not set: $varName. '
+      'Set it before launching the app.',
+    );
+  }
+
   @override
   Future<FlowyResult<UserProfilePB, FlowyError>> signUpWithOAuth({
     required String platform,
     Map<String, String> params = const {},
   }) async {
-    final base = Platform.environment['AUTHENTIK_BASE_URL'] ??
-        'https://auth.osmosis.page';
-    final slug = Platform.environment['AUTHENTIK_APP_SLUG'] ?? '';
-    final clientId = Platform.environment['AUTHENTIK_CLIENT_ID'] ?? '';
-
-    if (slug.isEmpty || clientId.isEmpty) {
-      return FlowyResult.failure(
-        FlowyError()
-          ..msg =
-              'Authentik is not configured. Set AUTHENTIK_APP_SLUG and AUTHENTIK_CLIENT_ID environment variables.',
-      );
-    }
 
     final codeVerifier = _generateCodeVerifier();
     final codeChallenge = _computeCodeChallenge(codeVerifier);
@@ -48,9 +56,9 @@ class AuthentikAuthService implements AuthService {
     _pendingCodeVerifier = codeVerifier;
 
     final uri = Uri.parse(
-      '$base/application/o/$slug/authorize/'
+      '$_base/application/o/$_slug/authorize/'
       '?response_type=code'
-      '&client_id=$clientId'
+      '&client_id=$_clientId'
       '&redirect_uri=${Uri.encodeComponent(_kRedirectUri)}'
       '&scope=${Uri.encodeComponent("openid profile email offline_access")}'
       '&code_challenge=$codeChallenge'
